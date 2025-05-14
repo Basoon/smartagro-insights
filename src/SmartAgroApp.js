@@ -53,14 +53,6 @@ export default function SmartAgroApp() {
     setReport(msg);
   };
 
-  const exportTXT = () => {
-    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "raport_smartagro.txt";
-    link.click();
-  };
-
   return (
     <Box>
       <Box mb={3}>
@@ -111,12 +103,13 @@ export default function SmartAgroApp() {
               Generuj raport
             </Button>
             {report && (
-              <>
-                <TextField fullWidth multiline minRows={6} value={report} margin="normal" />
-                <Button onClick={exportTXT} variant="outlined" color="secondary">
-                  Eksportuj do TXT
-                </Button>
-              </>
+              <TextField
+                fullWidth
+                multiline
+                minRows={6}
+                value={report}
+                margin="normal"
+              />
             )}
           </Box>
         </>
