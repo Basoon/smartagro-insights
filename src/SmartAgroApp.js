@@ -2,23 +2,15 @@ import React, { useState } from "react";
 import Papa from "papaparse";
 import {
   Box,
-  Button,
   Typography,
+  Button,
   Select,
   MenuItem,
-  FormControl,
   InputLabel,
+  FormControl,
   TextField
 } from "@mui/material";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend
-} from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 export default function SmartAgroApp() {
   const [data, setData] = useState([]);
@@ -26,7 +18,7 @@ export default function SmartAgroApp() {
   const [xKey, setXKey] = useState("");
   const [yKey, setYKey] = useState("");
   const [keys, setKeys] = useState([]);
-  const [aiSummary, setAiSummary] = useState("");
+  const [report, setReport] = useState("");
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -45,27 +37,33 @@ export default function SmartAgroApp() {
     });
   };
 
-  const handleAISummary = async () => {
-    const sample = JSON.stringify(data.slice(0, 10));
-    try {
-      const res = await fetch("https://api-inference.huggingface.co/models/sshleifer/distilbart-cnn-12-6", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY}`,
-        },
-        body: JSON.stringify({ inputs: `Podsumuj dane rolnicze: ${sample}` }),
-      });
-      const result = await res.json();
-      setAiSummary(result[0]?.summary_text || "Brak podsumowania.");
-    } catch (error) {
-      setAiSummary("Błąd podczas generowania podsumowania AI.");
-    }
+  const generateRecommendations = () => {
+    if (data.length === 0) return;
+
+    const highMoisture = data.filter(row => parseFloat(row["Wilgotność (%)"]) > 75).length;
+    const lowEfficiency = data.filter(row => parseFloat(row["Wydajność (kg/h)"]) < 1200).length;
+    const claySoil = data.filter(row => row["Typ gleby"] === "gliniasta").length;
+
+    let msg = "📊 Raport AI dla rolnika:\n\n";
+    msg += `Dane wskazują na ${highMoisture} przypadków wysokiej wilgotności (>75%).\n`;
+    msg += `Zidentyfikowano ${lowEfficiency} dni z niską wydajnością (<1200 kg/h).\n`;
+    if (claySoil > 10) msg += `Dominuje gleba gliniasta – zalecana zmiana płodozmianu lub dodatek wapna.\n`;
+    msg += `\n✅ Zalecenia:\n- Monitoruj wilgotność gleby i unikaj nadmiernego nawadniania.\n- Sprawdź jakość nawożenia przy niskiej wydajności.\n- Rozważ rzepak ozimy w regionach o wyższej wilgotności.\n`;
+
+    setReport(msg);
+  };
+
+  const exportTXT = () => {
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "raport_smartagro.txt";
+    link.click();
   };
 
   return (
     <Box>
-      <Box mb={4}>
+      <Box mb={3}>
         <Typography variant="h6">1. Wgraj plik CSV</Typography>
         <input type="file" accept=".csv" onChange={handleFileUpload} />
         <Typography mt={2}>{summary}</Typography>
@@ -74,28 +72,18 @@ export default function SmartAgroApp() {
       {data.length > 0 && (
         <>
           <Box mb={4}>
-            <Typography variant="h6">2. Wybierz kolumny do wykresu</Typography>
-            <FormControl sx={{ mr: 2, minWidth: 150 }}>
-              <InputLabel id="x-select-label">Oś X</InputLabel>
-              <Select
-                labelId="x-select-label"
-                value={xKey}
-                label="Oś X"
-                onChange={(e) => setXKey(e.target.value)}
-              >
+            <Typography variant="h6">2. Wybierz dane do wykresu</Typography>
+            <FormControl sx={{ mr: 2, minWidth: 160 }}>
+              <InputLabel>Oś X</InputLabel>
+              <Select value={xKey} onChange={(e) => setXKey(e.target.value)} label="Oś X">
                 {keys.map((k) => (
                   <MenuItem key={k} value={k}>{k}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel id="y-select-label">Oś Y</InputLabel>
-              <Select
-                labelId="y-select-label"
-                value={yKey}
-                label="Oś Y"
-                onChange={(e) => setYKey(e.target.value)}
-              >
+            <FormControl sx={{ minWidth: 160 }}>
+              <InputLabel>Oś Y</InputLabel>
+              <Select value={yKey} onChange={(e) => setYKey(e.target.value)} label="Oś Y">
                 {keys.map((k) => (
                   <MenuItem key={k} value={k}>{k}</MenuItem>
                 ))}
@@ -104,9 +92,9 @@ export default function SmartAgroApp() {
           </Box>
 
           {xKey && yKey && (
-            <Box mb={4}>
-              <Typography variant="h6">3. Wykres</Typography>
-              <LineChart width={700} height={300} data={data}>
+            <Box mb={5}>
+              <Typography variant="h6">3. Wykres danych</Typography>
+              <LineChart width={800} height={300} data={data}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey={xKey} />
                 <YAxis />
@@ -117,19 +105,19 @@ export default function SmartAgroApp() {
             </Box>
           )}
 
-          <Box mb={4}>
-            <Typography variant="h6">4. Podsumowanie AI</Typography>
-            <Button variant="contained" color="primary" onClick={handleAISummary}>
-              Wygeneruj podsumowanie
+          <Box mb={5}>
+            <Typography variant="h6">4. Rekomendacje AI</Typography>
+            <Button variant="contained" onClick={generateRecommendations} sx={{ mt: 1 }}>
+              Generuj raport
             </Button>
-            <TextField
-              fullWidth
-              multiline
-              minRows={4}
-              margin="normal"
-              value={aiSummary}
-              placeholder="Tu pojawi się podsumowanie danych..."
-            />
+            {report && (
+              <>
+                <TextField fullWidth multiline minRows={6} value={report} margin="normal" />
+                <Button onClick={exportTXT} variant="outlined" color="secondary">
+                  Eksportuj do TXT
+                </Button>
+              </>
+            )}
           </Box>
         </>
       )}
