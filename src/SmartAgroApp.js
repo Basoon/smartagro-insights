@@ -8,7 +8,8 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  TextField
+  TextField,
+  Paper
 } from "@mui/material";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
@@ -32,7 +33,7 @@ export default function SmartAgroApp() {
         setData(parsed);
         const detectedKeys = Object.keys(parsed[0] || {});
         setKeys(detectedKeys);
-        setSummary(`Wczytano ${parsed.length} rekordów. Kolumny: ${detectedKeys.join(", ")}`);
+        setSummary(`Wczytano ${parsed.length} rekordów. Dostępne kolumny: ${detectedKeys.join(", ")}`);
       },
     });
   };
@@ -54,8 +55,12 @@ export default function SmartAgroApp() {
   };
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       <Box mb={3}>
+        <Typography variant="h5" fontWeight="bold">SmartAgro Insights – Demo</Typography>
+        <Typography variant="subtitle1" gutterBottom color="text.secondary">
+          Inteligentna analiza danych rolniczych na podstawie pliku CSV
+        </Typography>
         <Typography variant="h6">1. Wgraj plik CSV</Typography>
         <input type="file" accept=".csv" onChange={handleFileUpload} />
         <Typography mt={2}>{summary}</Typography>
@@ -103,13 +108,11 @@ export default function SmartAgroApp() {
               Generuj raport
             </Button>
             {report && (
-              <TextField
-                fullWidth
-                multiline
-                minRows={6}
-                value={report}
-                margin="normal"
-              />
+              <Paper elevation={3} sx={{ mt: 2, p: 2, backgroundColor: '#f5f5f5' }}>
+                <Typography variant="body1" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {report}
+                </Typography>
+              </Paper>
             )}
           </Box>
         </>
